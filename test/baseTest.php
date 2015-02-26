@@ -19,32 +19,48 @@ class BaseTest extends PHPUnit_Framework_TestCase
         $this->assertEquals ("?key=value&otherKey=&db=0", addURLParameter ("?key=value&otherKey", "db", "0"));
     }
 
-    /* For now I can't manage to make phpunit fail if a syntax error happens ... */
-    public function testServerSideRender ()
+    /**
+     * FALSE is returned if the create_function failed (meaning there was a syntax error)
+     * @dataProvider providerTemplate
+     */
+    public function testServerSideRender ($template)
     {
+        $_COOKIE["template"] = $template;
         $this->assertNull (serverSideRender (NULL));
     }
 
-    /* The function for the head of the HTML catalog */
-    public function testGenerateHeader ()
+    /**
+     * The function for the head of the HTML catalog
+     * @dataProvider providerTemplate
+     */
+    public function testGenerateHeader ($templateName)
     {
         $_SERVER["HTTP_USER_AGENT"] = "Firefox";
         global $config;
-        $headcontent = file_get_contents(dirname(__FILE__) . '/../templates/' . getCurrentTemplate () . '/file.html');
+        $headcontent = file_get_contents(dirname(__FILE__) . '/../templates/' . $templateName . '/file.html');
         $template = new doT ();
-        $dot = $template->template ($headcontent, NULL);
+        $tpl = $template->template ($headcontent, NULL);
         $data = array("title"                 => $config['cops_title_default'],
                   "version"               => VERSION,
                   "opds_url"              => $config['cops_full_url'] . "feed.php",
-                  "template"              => getCurrentTemplate (),
+                  "customHeader"          => "",
+                  "template"              => $templateName,
                   "server_side_rendering" => useServerSideRendering (),
                   "current_css"           => getCurrentCss (),
                   "favico"                => $config['cops_icon'],
                   "getjson_url"           => "getJSON.php?" . addURLParameter (getQueryString (), "complete", 1));
 
-        $head = $dot ($data);
+        $head = $tpl ($data);
         $this->assertContains ("<head>", $head);
         $this->assertContains ("</head>", $head);
+    }
+
+    public function providerTemplate ()
+    {
+        return array (
+            array ("bootstrap"),
+            array ("default")
+        );
     }
 
     public function testLocalize ()
@@ -70,6 +86,58 @@ class BaseTest extends PHPUnit_Framework_TestCase
 
         $_SERVER['HTTP_ACCEPT_LANGUAGE'] = "en";
         localize ("authors.title", -1, true);
+    }
+
+    /**
+     * @dataProvider providerGetLangAndTranslationFile
+     */
+    public function testGetLangAndTranslationFile ($acceptLanguage, $result)
+    {
+        $_SERVER['HTTP_ACCEPT_LANGUAGE'] = $acceptLanguage;
+        list ($lang, $lang_file) = GetLangAndTranslationFile ();
+        $this->assertEquals ($result, $lang);
+
+        $_SERVER['HTTP_ACCEPT_LANGUAGE'] = "en";
+        localize ("authors.title", -1, true);
+    }
+
+    public function providerGetLangAndTranslationFile ()
+    {
+        return array (
+            array ("en", "en"),
+            array ("fr,fr-fr;q=0.8,en-us;q=0.5,en;q=0.3", "fr"),
+            array ("fr-FR", "fr"),
+            array ("pt,en-us;q=0.7,en;q=0.3", "en"),
+            array ("pt-br,pt;q=0.8,en-us;q=0.5,en;q=0.3", "pt_BR"),
+            array ("pt-pt,pt;q=0.8,en;q=0.5,en-us;q=0.3", "pt_PT"),
+            array ("zl", "en"),
+        );
+    }
+
+    /**
+     * @dataProvider providerGetAcceptLanguages
+     */
+    public function testGetAcceptLanguages ($acceptLanguage, $result)
+    {
+        $_SERVER['HTTP_ACCEPT_LANGUAGE'] = $acceptLanguage;
+        $langs = array_keys(GetAcceptLanguages ());
+        $this->assertEquals ($result, $langs[0]);
+
+        $_SERVER['HTTP_ACCEPT_LANGUAGE'] = "en";
+        localize ("authors.title", -1, true);
+    }
+
+    public function providerGetAcceptLanguages ()
+    {
+        return array (
+            array ("en", "en"),
+            array ("en-US", "en_US"),
+            array ("fr,fr-fr;q=0.8,en-us;q=0.5,en;q=0.3", "fr"), // French locale with Firefox
+            array ("fr-FR,fr;q=0.8,en-US;q=0.6,en;q=0.4", "fr_FR"), // French locale with Chrome
+            array ("fr-FR", "fr_FR"), // French locale with IE11
+            array ("pt-br,pt;q=0.8,en-us;q=0.5,en;q=0.3", "pt_BR"),
+            array ("zl", "zl"),
+        );
     }
 
     public function testBaseFunction () {

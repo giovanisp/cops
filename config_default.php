@@ -233,7 +233,7 @@
      * For now : Kindle, Sony PRS-T1, Sony PRS-T2, All Cybook devices (maybe a little extreme).
      * This item is used as regular expression so "." will force server side rendering for all devices
      */
-    $config['cops_server_side_render'] = "Kindle|EBRD1101|EBRD1201|cybook";
+    $config['cops_server_side_render'] = "Kindle\/1\.0|Kindle\/2\.0|EBRD1101|EBRD1201|cybook";
 
     /*
      * Specify the ignored categories for the home screen and with search
@@ -260,8 +260,30 @@
     $config ['cops_fetch_protect'] = "0";
 
     /*
+     * WARNING NOT READY FOR PRODUCTION USE
      * Make the search better (don't care about diacritics, uppercase should work on Cyrillic) but slower.
      * 1 : Yes (enable)
      * 0 : No
      */
     $config ['cops_normalized_search'] = "0";
+
+    /*
+     * Enable PHP password protection (You can use if htpasswd is not possible for you)
+     * If possible prefer htpasswd !
+     * array( "username" => "xxx", "password" => "secret") : Enable PHP password protection
+     * NULL : Disable PHP password protection (You can still use htpasswd)
+     */
+    $config['cops_basic_authentication'] = NULL;
+
+    /*
+     * Which template is used by default :
+     * 'default'
+     * 'bootstrap'
+     */
+    $config['cops_template'] = 'default';
+
+    /*
+     * Set language code to force a language (see lang/ directory for available languages).
+     * When empty it will auto detect the language.
+     */
+    $config['cops_language'] = '';
